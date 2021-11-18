@@ -2,7 +2,7 @@
 
 namespace App\Service;
 
-use App\Jobs\GetClientsFromVk;
+use App\Jobs\GetDataFromVK;
 use VK\Client\VKApiClient;
 use VK\Exceptions\Api\VKApiWeightedFloodException;
 use VK\Exceptions\VKApiException;
@@ -24,37 +24,12 @@ class VKService
      * VKService constructor.
      *
      * @param string $token
+     * @param array $params
      */
     public function __construct(string $token, $params = [])
     {
-        $this->VKApiClient = new VKApiClient;
         $this->params = $params;
         $this->token = $token;
-    }
-
-    public function getParam($name)
-    {
-        return $this->params[$name] ?? null;
-    }
-
-    /**
-     * @param int $account_id
-     * @return mixed
-     * @throws VKApiWeightedFloodException
-     * @throws VKApiException
-     * @throws VKClientException
-     */
-    public function adsGetClients()
-    {
-        try {
-            $job = new GetClientsFromVk($this->token, $this->getParam('account_id'));
-            dispatch_now($job);
-            $result = $job->getResponse();
-        } catch (VKApiWeightedFloodException | VKApiException | VKClientException $e) {
-            $result = ['error' => true, 'error_message' => $e->getMessage()];
-        }
-
-        return $result;
     }
 
     /**
@@ -65,10 +40,12 @@ class VKService
     {
         try {
             $methodExplode = explode('.', $method);
-            $methodName = $methodExplode[0] . ucfirst($methodExplode[1]);
-            return $this->{$methodName}();
+            $job = new GetDataFromVK($this->token, $methodExplode, $this->params);
+            dispatch_now($job);
+
+            return $job->getResponse();
         } catch (\Throwable $th) {
-            return ['error' => true, 'error_message' => 'method not exist'];
+            return ['error' => true, 'error_message' => $th->getMessage()];
         }
     }
 }

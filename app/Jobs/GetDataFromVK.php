@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
 use VK\Client\VKApiClient;
 
-class GetClientsFromVk implements ShouldQueue
+class GetDataFromVK implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, SerializesModels;
 
@@ -42,20 +42,27 @@ class GetClientsFromVk implements ShouldQueue
     private $countResult = 5;
 
     /**
-     * @var string
+     * @var array
      */
-    private $accountId;
+    private $params;
 
     /**
-     * GetClientsFromVk constructor.
+     * @var array
+     */
+    private $methodExplode;
+
+    /**
+     * GetDataFromVK constructor.
      *
      * @param string $token
-     * @param string $accountId
+     * @param array $methodExplode
+     * @param array $params
      */
-    public function __construct(string $token, string $accountId)
+    public function __construct(string $token, array $methodExplode, array $params = [])
     {
-        $this->accountId = $accountId;
+        $this->params = $params;
         $this->token = $token;
+        $this->methodExplode = $methodExplode;
         $this->VKApiClient = new VKApiClient;
     }
 
@@ -65,15 +72,15 @@ class GetClientsFromVk implements ShouldQueue
     public function handle()
     {
         do {
-            $this->getClients();
+            $this->executeAction();
             $this->maxIteration -= 1;
         } while ($this->countResult >= count($this->response) || $this->maxIteration > 0);
     }
 
-    private function getClients()
+    private function executeAction()
     {
         Redis::throttle('VKService')->allow(1)->every(1)->then(function (){
-            $this->response[] = $this->VKApiClient->ads()->getClients($this->token, ['account_id' => $this->accountId]);
+            $this->response[] = $this->VKApiClient->{$this->methodExplode[0]}()->{$this->methodExplode[1]}($this->token, $this->params);
         }, function () {
             $this->release();
         });
