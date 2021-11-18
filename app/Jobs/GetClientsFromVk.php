@@ -72,7 +72,7 @@ class GetClientsFromVk implements ShouldQueue
 
     private function getClients()
     {
-        Redis::throttle('VKService')->allow(1)->every(1)->then(function (){
+        Redis::throttle('VKService')->allow(1)->every(0.7)->then(function (){
             $this->response[] = $this->VKApiClient->ads()->getClients($this->token, ['account_id' => $this->accountId]);
         }, function () {
             $this->release();
