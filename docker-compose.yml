@@ -1,0 +1,76 @@
+version: "3.9"
+
+services:
+  nginx:
+    build:
+      context: .docker/local/nginx
+      dockerfile: Dockerfile
+    volumes:
+      - ./docker/local/nginx/logs:/var/log/nginx
+    ports:
+     # App port
+      - 800:80
+    links:
+      - php
+      - postgres
+    networks:
+      app_network:
+        ipv4_address: ${NGINX_URL}
+
+  # PHP FastCGI Process Manager container
+  php:
+    build:
+      context: .
+      dockerfile: .docker/local/php/Dockerfile
+    volumes:
+      - ./:/var/www/app
+      - .docker/local/php/php.ini:/usr/local/etc/php/php.ini
+      - .docker/local/php/cacert.pem:/usr/local/etc/php/cacert.pem
+    networks:
+      app_network:
+        ipv4_address: ${PHP_URL}
+
+  # Postgres container
+  postgres:
+    hostname: postgres
+    build:
+      context: .docker/local/postgres
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5502:5432"
+    networks:
+      app_network:
+        ipv4_address: ${POSTGRES_URL}
+    environment:
+      - POSTGRES_USER=${DB_USERNAME}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_DATABASE}
+      - PGDATA=/var/lib/postgresql/data
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Client redis
+  redis:
+    build:
+      context: .docker/local/redis
+      dockerfile: Dockerfile
+    command: redis-server --appendonly yes --requirepass "${REDIS_PASSWORD}"
+    ports:
+      - "6382:6379"
+    links:
+      - php
+    networks:
+      app_network:
+        ipv4_address: ${REDIS_URL}
+
+networks:
+  app_network:
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.14.238.0/24"
+
+volumes:
+  postgres_data:
