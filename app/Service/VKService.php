@@ -3,10 +3,6 @@
 namespace App\Service;
 
 use App\Jobs\GetDataFromVK;
-use VK\Client\VKApiClient;
-use VK\Exceptions\Api\VKApiWeightedFloodException;
-use VK\Exceptions\VKApiException;
-use VK\Exceptions\VKClientException;
 
 class VKService
 {
